@@ -18,6 +18,13 @@ bash setup.sh
 python3 main.py --dataset c10 --label-smoothing --autoaugment
 ```
 
+3. **Visualization of training results**
+
+You need to modify the read path according to the actual training log file, see for details [train_plot.py](/train_plot.py)
+```sh
+python3 train_plot.py
+```
+
 * **(Optinal) Train ViT on CIFAR-10 using Comet.ml**  
 If you have a [Comet.ml](https://www.comet.ml/) account, this automatically logs experiments by specifying your api key.(Otherwise, your experiments are automatically logged using `CSVLogger`.)
 
