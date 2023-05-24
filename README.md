@@ -38,7 +38,7 @@ python3 main.py --api-key [YOUR COMET API KEY] --dataset c10
 
 |Dataset|Acc.(%)|Time(hh:mm:ss)|
 |:--:|:--:|:--:|
-|CIFAR-10|**90.92**|02:14:22|
+|CIFAR-10|**90.56**|02:14:22|
 
 * Number of parameters: 6.3 M
 * Device: Nvidia 2070Ti (single GPU)
