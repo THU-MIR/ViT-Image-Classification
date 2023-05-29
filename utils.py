@@ -2,7 +2,7 @@ import torch.nn as nn
 import torchvision
 import torchvision.transforms as transforms
 
-from autoaugment import CIFAR10Policy, SVHNPolicy
+from autoaugment import CIFAR10Policy
 from criterions import LabelSmoothingCrossEntropyLoss
 from da import RandomCropPaste
 
@@ -43,14 +43,11 @@ def get_transform(args):
     train_transform += [
         transforms.RandomCrop(size=args.size, padding=args.padding)
     ]
-    if args.dataset != 'svhn':
-        train_transform += [transforms.RandomHorizontalFlip()]
+    train_transform += [transforms.RandomHorizontalFlip()]
     
     if args.autoaugment:
         if args.dataset == 'c10' or args.dataset=='c100':
             train_transform.append(CIFAR10Policy())
-        elif args.dataset == 'svhn':
-            train_transform.append(SVHNPolicy())
         else:
             print(f"No AutoAugment for {args.dataset}")   
 
@@ -93,16 +90,6 @@ def get_dataset(args):
         train_transform, test_transform = get_transform(args)
         train_ds = torchvision.datasets.CIFAR100(root, train=True, transform=train_transform, download=True)
         test_ds = torchvision.datasets.CIFAR100(root, train=False, transform=test_transform, download=True)
-
-    elif args.dataset == "svhn":
-        args.in_c = 3
-        args.num_classes=10
-        args.size = 32
-        args.padding = 4
-        args.mean, args.std = [0.4377, 0.4438, 0.4728], [0.1980, 0.2010, 0.1970]
-        train_transform, test_transform = get_transform(args)
-        train_ds = torchvision.datasets.SVHN(root, split="train",transform=train_transform, download=True)
-        test_ds = torchvision.datasets.SVHN(root, split="test", transform=test_transform, download=True)
 
     else:
         raise NotImplementedError(f"{args.dataset} is not implemented yet.")

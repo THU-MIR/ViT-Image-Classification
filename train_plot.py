@@ -13,14 +13,12 @@ with open('logs/vit_c10_aa_ls/{}/metrics.csv'.format("version_0"), 'r') as file:
         if(row[0] == ''):
             if(row[4] == ''): # 记录学习率 lr
                 ir_date.append(row)
-                # print(ir_date)
             else:
                 test_datas.append(row) # 记录 val_loss,val_acc
-                # print(test_datas)
                 
         elif(row[0] != 'loss'):
             train_data.append(row)
-            # print(row)
+
 
 # 获取列数 (有3列不用可视化)
 num_columns = len(train_data[0]) - 3

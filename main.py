@@ -13,7 +13,6 @@ from utils import get_model, get_dataset, get_experiment_name, get_criterion
 from da import CutMix, MixUp
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--api-key", help="API Key for Comet.ml")
 parser.add_argument("--dataset", default="c10", type=str, help="[c10, c100, svhn]")
 parser.add_argument("--num-classes", default=10, type=int)
 parser.add_argument("--model-name", default="vit", help="[vit]", type=str)
@@ -65,16 +64,16 @@ test_dl = torch.utils.data.DataLoader(test_ds, batch_size=args.eval_batch_size, 
 class Net(pl.LightningModule):
     def __init__(self, hparams):
         super(Net, self).__init__()
-        # self.hparams = hparams
         self.hparams.update(vars(hparams))
         self.model = get_model(hparams)
         self.criterion = get_criterion(args)
+        # 数据增强
         if hparams.cutmix:
             self.cutmix = CutMix(hparams.size, beta=1.)
         if hparams.mixup:
             self.mixup = MixUp(alpha=1.)
-        self.log_image_flag = hparams.api_key is None
-
+        self.log_image_flag = False
+        
     def forward(self, x):
         return self.model(x)
 
@@ -130,27 +129,15 @@ class Net(pl.LightningModule):
 if __name__ == "__main__":
     experiment_name = get_experiment_name(args)
     print(experiment_name)
-    if args.api_key:
-        print("[INFO] Log with Comet.ml!")
-        logger = pl.loggers.CometLogger(
-            api_key=args.api_key,
-            save_dir="logs",
-            project_name=args.project_name,
-            experiment_name=experiment_name
-        )
-        refresh_rate = 0
-    else:
-        print("[INFO] Log with CSV")
-        logger = pl.loggers.CSVLogger(
-            save_dir="logs",
-            name=experiment_name
-        )
-        refresh_rate = 1
+    print("[INFO] Log with CSV")
+    logger = pl.loggers.CSVLogger(
+        save_dir="logs",
+        name=experiment_name
+    )
+    refresh_rate = 1
     net = Net(args)
     trainer = pl.Trainer(precision=args.precision,fast_dev_run=args.dry_run, gpus=args.gpus, benchmark=args.benchmark, logger=logger, max_epochs=args.max_epochs, weights_summary="full", progress_bar_refresh_rate=refresh_rate)
     trainer.fit(model=net, train_dataloader=train_dl, val_dataloaders=test_dl)
     if not args.dry_run:
         model_path = f"weights/{experiment_name}.pth"
         torch.save(net.state_dict(), model_path)
-        if args.api_key:
-            logger.experiment.log_asset(file_name=experiment_name, file_data=model_path)

@@ -12,13 +12,13 @@ class ViT(nn.Module):
         self.patch = patch # number of patches in one row(or col)
         self.is_cls_token = is_cls_token
         self.patch_size = img_size//self.patch #32/8=4
-        f = (img_size//self.patch)**2*3 # 48 # patch vec length 每个块的向量长度[4, 4, 3] -> [48]
+        f = (img_size//self.patch)**2*3 # 48 # patch vec length 每个token的向量长度[4, 4, 3] -> [48]
         # [32, 32, 3] -> [4, 4, 3, 8]  8x8=64个token
         num_tokens = (self.patch**2)+1 if self.is_cls_token else (self.patch**2)# 记录一张图片的总token数 8x8+1=65个 token， 用于添加训练的 token 位置编码
 
-        self.emb = nn.Linear(f, hidden) # (b, n, f)#全连接层 [48] -> [384]
+        self.emb = nn.Linear(f, hidden) # (b, n, f)
         self.cls_token = nn.Parameter(torch.randn(1, 1, hidden)) if is_cls_token else None #加一个token
-        self.pos_emb = nn.Parameter(torch.randn(1,num_tokens, hidden))#位置 #加一组token
+        self.pos_emb = nn.Parameter(torch.randn(1,num_tokens, hidden)) # 添加 Position embeddings
         enc_list = [TransformerEncoder(hidden,mlp_hidden=mlp_hidden, dropout=dropout, head=head) for _ in range(num_layers)] #transformerencoder
         self.enc = nn.Sequential(*enc_list)
         self.fc = nn.Sequential(
@@ -41,11 +41,11 @@ class ViT(nn.Module):
         out = self.fc(out)# [128, 65, 384] -> [128, 10]
         return out
 
-    def _to_words(self, x):%将图片信息转换格式
+    def _to_words(self, x):
         """
         (b, c, h, w) -> (b, n, f)
         """
-        out = x.unfold(2, self.patch_size, self.patch_size).unfold(3, self.patch_size, self.patch_size).permute(0,2,3,4,5,1)#permute维度互换
+        out = x.unfold(2, self.patch_size, self.patch_size).unfold(3, self.patch_size, self.patch_size).permute(0,2,3,4,5,1) # permute维度互换
         out = out.reshape(x.size(0), self.patch**2 ,-1)
         return out
 
