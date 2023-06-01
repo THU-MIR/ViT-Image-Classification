@@ -25,6 +25,17 @@ You need to modify the read path according to the actual training log file, see 
 python3 train_plot.py
 ```
 
+4. **Visualize trained model inference**
+
+You need to modify the **Image Path** and **Model Path** to be tested in the [main.py](/main.py), then execute:
+```sh
+python3 main.py --predict
+```
+You can see the resulting image below.
+
+![Predict result](imgs/predict_result.png)
+
+
 ## 2. Results
 
 |Dataset|Acc.(%)|Time(hh:mm:ss)|
@@ -33,7 +44,8 @@ python3 train_plot.py
 
 * Number of parameters: 6.3 M
 * Device: Nvidia 2070Ti (single GPU)
-* Mixed Precision is enabled
+
+
 
 ### 2.1 CIFAR-10
 * Accucary && Loss

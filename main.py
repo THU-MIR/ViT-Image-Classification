@@ -1,6 +1,4 @@
 import argparse
-
-import comet_ml
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -8,6 +6,8 @@ import torchvision
 import pytorch_lightning as pl
 import warmup_scheduler
 import numpy as np
+import torchvision.transforms as transforms
+import cv2
 
 from utils import get_model, get_dataset, get_experiment_name, get_criterion
 from da import CutMix, MixUp
@@ -44,6 +44,7 @@ parser.add_argument("--mlp-hidden", default=384, type=int)
 parser.add_argument("--off-cls-token", action="store_true")
 parser.add_argument("--seed", default=42, type=int)
 parser.add_argument("--project-name", default="VisionTransformer")
+parser.add_argument("--predict", action="store_true")
 args = parser.parse_args()
 torch.manual_seed(args.seed)
 np.random.seed(args.seed)
@@ -64,9 +65,9 @@ test_dl = torch.utils.data.DataLoader(test_ds, batch_size=args.eval_batch_size, 
 class Net(pl.LightningModule):
     def __init__(self, hparams):
         super(Net, self).__init__()
-        self.hparams.update(vars(hparams))
-        self.model = get_model(hparams)
-        self.criterion = get_criterion(args)
+        self.hparams.update(vars(hparams))   # 参数初始化
+        self.model = get_model(hparams)      # 生成网络实例对象
+        self.criterion = get_criterion(args) # 生成损失函数
         # 数据增强
         if hparams.cutmix:
             self.cutmix = CutMix(hparams.size, beta=1.)
@@ -135,9 +136,39 @@ if __name__ == "__main__":
         name=experiment_name
     )
     refresh_rate = 1
+
     net = Net(args)
-    trainer = pl.Trainer(precision=args.precision,fast_dev_run=args.dry_run, gpus=args.gpus, benchmark=args.benchmark, logger=logger, max_epochs=args.max_epochs, weights_summary="full", progress_bar_refresh_rate=refresh_rate)
-    trainer.fit(model=net, train_dataloader=train_dl, val_dataloaders=test_dl)
-    if not args.dry_run:
-        model_path = f"weights/{experiment_name}.pth"
-        torch.save(net.state_dict(), model_path)
+    if args.predict:
+        class_list = ["airplane", 'automobile', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck']
+        img_path = "test/1_3001.jpg" # 测试图片的路径
+        net.load_state_dict(torch.load("weights/vit_c10_aa_ls.pth")) # 加载模型文件
+        torch.no_grad()
+        net.eval()
+        
+        # 格式转换与前向推理
+        img = cv2.imread(img_path) 
+        transf = transforms.ToTensor()
+        img_tensor = transf(img)  # numpy(H,W,C）-> tensor(C,H,W)
+        img_tensor = img_tensor.unsqueeze(0)
+        outputs = net(img_tensor)         # 前向推理
+        result = outputs / outputs.norm() # 置信度输出归一化
+
+        confidence_val = torch.max(result)
+        result_index = torch.argmax(result).item()
+        print("Confidence Interval:", confidence_val)
+        print("Result Index:", result_index)
+        result = torch.max(result)
+        
+        # 模型推理结果可视化
+        img = cv2.resize(img, (320, 320))
+        cv2.putText(img, "Confidence: {:.3f}".format(float(confidence_val)), (1, 23), cv2.FONT_HERSHEY_COMPLEX, 1, (0, 0, 255), 1, 1)
+        cv2.putText(img, "Class: {}".format(class_list[result_index]), (1, 49), cv2.FONT_HERSHEY_COMPLEX, 1, (0, 0, 255), 1, 1)
+        cv2.imshow(img_path, img)
+        cv2.waitKey(10000)   # 图像显示延迟 10000ms
+        # cv2.imwrite("imgs/predict_result.png", img) # 保存图像文件
+    else:
+        trainer = pl.Trainer(precision=args.precision,fast_dev_run=args.dry_run, gpus=args.gpus, benchmark=args.benchmark, logger=logger, max_epochs=args.max_epochs, weights_summary="full", progress_bar_refresh_rate=refresh_rate)
+        trainer.fit(model=net, train_dataloader=train_dl, val_dataloaders=test_dl)
+        if not args.dry_run:
+            model_path = f"weights/{experiment_name}.pth"
+            torch.save(net.state_dict(), model_path)

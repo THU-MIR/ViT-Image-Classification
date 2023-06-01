@@ -11,15 +11,14 @@ class ViT(nn.Module):
 
         self.patch = patch # number of patches in one row(or col)
         self.is_cls_token = is_cls_token
-        self.patch_size = img_size//self.patch #32/8=4
+        self.patch_size = img_size//self.patch
         f = (img_size//self.patch)**2*3 # 48 # patch vec length 每个token的向量长度[4, 4, 3] -> [48]
-        # [32, 32, 3] -> [4, 4, 3, 8]  8x8=64个token
-        num_tokens = (self.patch**2)+1 if self.is_cls_token else (self.patch**2)# 记录一张图片的总token数 8x8+1=65个 token， 用于添加训练的 token 位置编码
+        num_tokens = (self.patch**2)+1 if self.is_cls_token else (self.patch**2)# 记录一张图片的总token数 8x8+1=65个 token， 用于添加训练的 cls_token 位置编码
 
         self.emb = nn.Linear(f, hidden) # (b, n, f)
-        self.cls_token = nn.Parameter(torch.randn(1, 1, hidden)) if is_cls_token else None #加一个token
+        self.cls_token = nn.Parameter(torch.randn(1, 1, hidden)) if is_cls_token else None
         self.pos_emb = nn.Parameter(torch.randn(1,num_tokens, hidden)) # 添加 Position embeddings
-        enc_list = [TransformerEncoder(hidden,mlp_hidden=mlp_hidden, dropout=dropout, head=head) for _ in range(num_layers)] #transformerencoder
+        enc_list = [TransformerEncoder(hidden,mlp_hidden=mlp_hidden, dropout=dropout, head=head) for _ in range(num_layers)]
         self.enc = nn.Sequential(*enc_list)
         self.fc = nn.Sequential(
             nn.LayerNorm(hidden),
@@ -28,17 +27,17 @@ class ViT(nn.Module):
 
 
     def forward(self, x):
-        out = self._to_words(x)# [128, 3, 32, 32] -> [128, 64, 48]
-        out = self.emb(out) # Patch Embedding: [128, 64, 48] -> [128, 64, 384]
+        out = self._to_words(x)  # Patch Image: [128, 3, 32, 32] -> [128, 64, 48]
+        out = self.emb(out)      # Patch Embedding: [128, 64, 48] -> [128, 64, 384]
         if self.is_cls_token:
-            out = torch.cat([self.cls_token.repeat(out.size(0),1,1), out],dim=1)# 插入 Position Embedding
-        out = out + self.pos_emb# Add Class token: [128, 64, 384] -> [128, 65, 384]
-        out = self.enc(out)# Transform encoding  [128, 65, 384] -> [128, 65, 384]
+            out = torch.cat([self.cls_token.repeat(out.size(0),1,1), out],dim=1) # Insert Position Embedding
+        out = out + self.pos_emb # Add Class token: [128, 64, 384] -> [128, 65, 384]
+        out = self.enc(out)      # Transform encoding  [128, 65, 384] -> [128, 65, 384]
         if self.is_cls_token:
             out = out[:,0]
         else:
             out = out.mean(1)
-        out = self.fc(out)# [128, 65, 384] -> [128, 10]
+        out = self.fc(out)       # [128, 65, 384] -> [128, 10]
         return out
 
     def _to_words(self, x):
