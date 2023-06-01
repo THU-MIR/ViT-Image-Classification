@@ -140,7 +140,7 @@ if __name__ == "__main__":
     net = Net(args)
     if args.predict:
         class_list = ["airplane", 'automobile', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck']
-        img_path = "test/1_3001.jpg" # 测试图片的路径
+        img_path = "test/9_24077.jpg" # 测试图片的路径
         net.load_state_dict(torch.load("weights/vit_c10_aa_ls.pth")) # 加载模型文件
         torch.no_grad()
         net.eval()
