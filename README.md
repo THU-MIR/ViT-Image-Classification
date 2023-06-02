@@ -1,4 +1,5 @@
-# Transformer Implementation for Image Classification based on CIFAR10 (A Course assignment for Artificial Intelligence Module at Tsinghua University)
+# Transformer Implementation for Image Classification based on CIFAR10 
+> This is a course assignment for Artificial Intelligence module at Tsinghua University.
 
 PyTorch implementation for image classification using Transformer based on ViT paper [[Dosovitskiy, A.(ICLR'21)]](https://openreview.net/forum?id=YicbFdNTTy) **modified to obtain over 90% accuracy**(, I know, which is easily reached using CNN-based architectures.) **FROM SCRATCH on CIFAR-10 with small number of parameters (= 6.3M, originally ViT-B has 86M)**. If there is some problem, let me know kindly :) Any suggestions are welcomed!
 
